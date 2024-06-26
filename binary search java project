@@ -1,0 +1,167 @@
+import javafx.animation.FillTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.SequentialTransition;
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.text.Font;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+import java.util.Arrays;
+
+public class BinarySearch extends Application {
+
+    private TextField inputField;
+    private TextField targetField;
+    private TextArea resultArea;
+    private HBox arrayBox;
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Binary Search Visualizer");
+
+        // Create UI components
+        arrayBox = new HBox();
+        arrayBox.setSpacing(10);
+        arrayBox.setAlignment(Pos.CENTER);
+        
+        inputField = new TextField();
+        inputField.setPromptText("Enter sorted array elements (comma-separated)");
+
+        targetField = new TextField();
+        targetField.setPromptText("Enter target value");
+
+        Button inputButton = new Button("Input Array");
+        inputButton.setOnAction(e -> inputArray());
+
+        Button searchButton = new Button("Search");
+        searchButton.setOnAction(e -> startBinarySearch());
+
+        Button showCodeButton = new Button("Show Code");
+        showCodeButton.setOnAction(e -> showBinarySearchCode());
+
+        resultArea = new TextArea();
+        resultArea.setPrefHeight(100);
+        resultArea.setFont(Font.font("Monospaced", 12));
+
+        HBox inputBox = new HBox(10, inputField, targetField, inputButton, searchButton, showCodeButton);
+        inputBox.setAlignment(Pos.CENTER);
+        inputBox.setPadding(new Insets(10));
+
+        VBox mainBox = new VBox(10, inputBox, arrayBox, resultArea);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setAlignment(Pos.CENTER);
+
+        Scene scene = new Scene(mainBox, 800, 400);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private void inputArray() {
+        arrayBox.getChildren().clear();
+        String input = inputField.getText();
+        if (input.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Input Error", "Please enter array elements.");
+            return;
+        }
+
+        String[] elements = input.split(",");
+        for (String element : elements) {
+            Circle circle = new Circle(20, Color.LIGHTBLUE);
+            circle.setStroke(Color.BLACK);
+            circle.setStrokeWidth(2);
+            Label label = new Label(element.trim());
+            StackPane stack = new StackPane(circle, label);
+            arrayBox.getChildren().add(stack);
+        }
+    }
+
+    private void startBinarySearch() {
+        String targetStr = targetField.getText();
+        if (targetStr.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Input Error", "Please enter a target value.");
+            return;
+        }
+
+        try {
+            int target = Integer.parseInt(targetStr);
+            Integer[] array = arrayBox.getChildren().stream()
+                .map(node -> ((Label) ((StackPane) node).getChildren().get(1)).getText())
+                .map(Integer::parseInt)
+                .toArray(Integer[]::new);
+
+            resultArea.clear();
+            SequentialTransition animation = binarySearch(array, target);
+            if (animation != null) {
+                animation.play();
+            }
+        } catch (NumberFormatException e) {
+            showAlert(Alert.AlertType.ERROR, "Input Error", "Invalid input. Please enter valid integers.");
+        }
+    }
+
+    private SequentialTransition binarySearch(Integer[] array, int target) {
+        Arrays.sort(array);
+        int left = 0;
+        int right = array.length - 1;
+        SequentialTransition sequentialTransition = new SequentialTransition();
+
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            StackPane midNode = (StackPane) arrayBox.getChildren().get(mid);
+            FillTransition fillTransition = new FillTransition(Duration.millis(500), midNode.getChildren().get(0), Color.LIGHTBLUE, Color.YELLOW);
+            sequentialTransition.getChildren().add(fillTransition);
+
+            if (array[mid] == target) {
+                resultArea.appendText("Target found at index " + mid + "\n");
+                FillTransition successTransition = new FillTransition(Duration.millis(500), midNode.getChildren().get(0), Color.YELLOW, Color.GREEN);
+                sequentialTransition.getChildren().add(successTransition);
+                return sequentialTransition;
+            } else if (array[mid] < target) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+
+        resultArea.appendText("Target not found.\n");
+        return sequentialTransition;
+    }
+
+    private void showBinarySearchCode() {
+        String code = "public int binarySearch(int[] array, int target) {\n" +
+                      "    int left = 0;\n" +
+                      "    int right = array.length - 1;\n" +
+                      "    while (left <= right) {\n" +
+                      "        int mid = (left + right) / 2;\n" +
+                      "        if (array[mid] == target) {\n" +
+                      "            return mid;\n" +
+                      "        } else if (array[mid] < target) {\n" +
+                      "            left = mid + 1;\n" +
+                      "        } else {\n" +
+                      "            right = mid - 1;\n" +
+                      "        }\n" +
+                      "    }\n" +
+                      "    return -1;\n" +
+                      "}";
+        resultArea.setText(code);
+    }
+
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}
